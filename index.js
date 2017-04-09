@@ -1,23 +1,20 @@
-import * as hapi from 'hapi';
-import * as Joi from 'joi';
-import * as couchdb from 'couchdb-promises';
-import * as Boom from 'boom';
+'use strict';
+
+const hapi = require('hapi');
+const Joi = require('joi');
+const couchdb = require('couchdb-promises');
+const Boom = require('boom');
 
 // api server
-const server: hapi.Server = new hapi.Server();
+const server = new hapi.Server();
 server.connection({port: 3000});
 
 // db connection
-const db: any = couchdb({
+const db = couchdb({
   baseUrl: 'http://localhost:5984',
   requestTimeout: 10000
 })
 const dbName = 'bookmarks'
-
-const bkmrkSchema = Joi.object().keys({
-    name: Joi.string().required(),
-    url: Joi.string().required()
-});
 
 server.route({method: 'GET', path: '/', handler: (request, reply) => {
     db.getInfo()
@@ -33,11 +30,12 @@ server.route({method: 'POST', path: '/api/bookmark', config: {
     validate: {
         payload: {
             name: Joi.string().required(),
-            url: Joi.string().required()
+            url: Joi.string().required(),
+            tags: Joi.array().items(Joi.string())
         }
     }, 
     handler: (request, reply) => {
-        db.createDocument(dbName, request.payload)
+        db.createDocument(dbName, Object.assign({created: Date.now()}, request.payload))
             .then(data => {
                 reply({id: data.data.id});
             })
@@ -67,4 +65,5 @@ db.getDatabaseHead(dbName)
         });
     }).catch(err =>{
         console.log(err);
-    });
+    }
+);
